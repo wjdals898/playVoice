@@ -16,6 +16,10 @@ spring:
         properties:
             hibernate:
                 format_sql: true # ???? query? ???
+jwt:
+    secret: wilflafe8w7fawf9fglrpobegmkv53EIF98fofvoenwkeof23wb9nvlk930jibnls2o9
+    access-validity-time: 600000 # 10분 3600000 # 1시간
+    refresh-validity-time: 1800000 # 30분 7776000000 # 3개월
 
 logging.level:
     org.hibernate.SQL: debug

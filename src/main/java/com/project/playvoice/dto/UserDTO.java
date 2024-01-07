@@ -2,6 +2,8 @@ package com.project.playvoice.dto;
 
 import lombok.*;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -12,5 +14,8 @@ public class UserDTO {
     private String password;
     private String email;
     private String nickname;
+    private List<String> roles;
+    private String access_token;
+    private String refresh_token;
     private Long id;
 }

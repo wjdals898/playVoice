@@ -1,18 +1,21 @@
 package com.project.playvoice.service;
 
 import com.project.playvoice.domain.UserEntity;
+import com.project.playvoice.dto.TokenDTO;
 import com.project.playvoice.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
     public UserEntity create(final UserEntity userEntity) {
         if (userEntity == null ||
@@ -38,7 +41,8 @@ public class UserService {
     }
 
     public UserEntity getByCredentials(final String username, final String password, final PasswordEncoder encoder) {
-        final UserEntity originalUser = userRepository.findByUsername(username);
+        final UserEntity originalUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("username not found"));
 
         if (originalUser != null && encoder.matches(password, originalUser.getPassword())) { return originalUser; }
         return null;
