@@ -1,28 +1,20 @@
 package com.project.playvoice.controller;
 
-import antlr.Token;
 import com.project.playvoice.domain.UserEntity;
-import com.project.playvoice.dto.LoginDTO;
-import com.project.playvoice.dto.ResponseDTO;
-import com.project.playvoice.dto.TokenDTO;
-import com.project.playvoice.dto.UserDTO;
-import com.project.playvoice.security.JwtAuthenticationFilter;
+import com.project.playvoice.dto.*;
 import com.project.playvoice.security.TokenProvider;
 import com.project.playvoice.service.JwtService;
 import com.project.playvoice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -57,7 +49,7 @@ public class UserController {
 
             return ResponseEntity.ok().body(responseUserDTO);
         } catch (Exception e) {
-            ResponseDTO responseDTO = ResponseDTO.builder().error(e.getMessage()).build();
+            ResponseDTO<UserDTO> responseDTO = ResponseDTO.<UserDTO>builder().message(e.getMessage()).build();
             return ResponseEntity.badRequest().body(responseDTO);
         }
     }
@@ -70,7 +62,7 @@ public class UserController {
             final String accessToken = tokenProvider.createAccessToken(user.getUsername(), user.getNickname(), user.getRoles());
             final String refreshToken = loginDTO.getIsAuthLogin() ?
                     tokenProvider.createRefreshToken(user.getUsername(), user.getNickname(), user.getRoles()) :
-                    null;
+                    "";
 
             final UserDTO responseUserDTO = UserDTO.builder()
                     .id(user.getId())
@@ -78,8 +70,6 @@ public class UserController {
                     .email(user.getEmail())
                     .nickname(user.getNickname())
                     .roles(user.getRoles())
-                    .access_token(accessToken)
-                    .refresh_token(refreshToken)
                     .build();
 
             final TokenDTO tokenDTO = TokenDTO.builder()
@@ -95,11 +85,96 @@ public class UserController {
 
             return ResponseEntity.ok().headers(httpHeaders).body(responseUserDTO);
         } else {
-            ResponseDTO responseDTO = ResponseDTO.builder()
-                    .error("fail to login")
+            ResponseDTO<UserDTO> responseDTO = ResponseDTO.<UserDTO>builder()
+                    .message("fail to login")
                     .build();
             return ResponseEntity.badRequest().body(responseDTO);
         }
     }
 
+    @GetMapping
+    public ResponseEntity<?> findAllUsers() {
+        try {
+            List<UserEntity> entities = userService.findAllUsers();
+
+            List<UserDTO> dtos = entities.stream().map(UserDTO::new).collect(Collectors.toList());
+
+            ResponseDTO<UserDTO> responseDTO = ResponseDTO.<UserDTO>builder().dataList(dtos).build();
+
+            return ResponseEntity.ok().body(responseDTO);
+        } catch (Exception e) {
+            ResponseDTO<UserDTO> responseDTO = ResponseDTO.<UserDTO>builder()
+                    .message("fail to fetch users")
+                    .build();
+            return ResponseEntity.badRequest().body(responseDTO);
+        }
+    }
+
+    @GetMapping("/nickname/{nickname}")
+    public ResponseEntity<?> findByNickname(@PathVariable String nickname) {
+        try {
+            UserEntity userEntity = userService.findByNickname(nickname);
+            UserDTO userDTO = UserDTO.builder()
+                    .id(userEntity.getId())
+                    .username(userEntity.getUsername())
+                    .email(userEntity.getEmail())
+                    .nickname(userEntity.getNickname())
+                    .roles(userEntity.getRoles())
+                    .build();
+
+            return ResponseEntity.ok().body(userDTO);
+        } catch (Exception e) {
+            ResponseDTO<UserDTO> responseDTO = ResponseDTO.<UserDTO>builder()
+                    .message(e.getMessage())
+                    .build();
+
+            return ResponseEntity.badRequest().body(responseDTO);
+        }
+    }
+
+    @GetMapping("/email/{email}")
+    public ResponseEntity<?> findByEmail(@PathVariable String email) {
+        try {
+            UserEntity userEntity = userService.findByEmail(email);
+            EmailDTO emailDTO = EmailDTO.builder()
+                    .id(userEntity.getId())
+                    .email(userEntity.getEmail())
+                    .username(userEntity.getUsername())
+                    .build();
+
+            return ResponseEntity.ok().body(emailDTO);
+        } catch (Exception e) {
+            ResponseDTO<EmailDTO> responseDTO = ResponseDTO.<EmailDTO>builder()
+                    .message(e.getMessage())
+                    .build();
+
+            return ResponseEntity.badRequest().body(responseDTO);
+        }
+    }
+
+    @GetMapping("/username/{username}")
+    public ResponseEntity<?> findByUsername(@PathVariable String username) {
+        try {
+            UserEntity userEntity = userService.findByUsername(username);
+
+            EmailDTO emailDTO = EmailDTO.builder()
+                    .id(userEntity.getId())
+                    .email(userEntity.getEmail())
+                    .username(userEntity.getUsername())
+                    .build();
+
+            ResponseDTO<EmailDTO> responseDTO = ResponseDTO.<EmailDTO>builder()
+                    .message("success to find user")
+                    .data(emailDTO)
+                    .build();
+
+            return ResponseEntity.ok().body(responseDTO);
+        } catch (Exception e) {
+            ResponseDTO<EmailDTO> responseDTO = ResponseDTO.<EmailDTO>builder()
+                    .message(e.getMessage())
+                    .build();
+
+            return ResponseEntity.badRequest().body(responseDTO);
+        }
+    }
 }
