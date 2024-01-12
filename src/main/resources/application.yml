@@ -16,10 +16,16 @@ spring:
         properties:
             hibernate:
                 format_sql: true # ???? query? ???
+
+    redis:
+        host: localhost
+        port: 6379
+        password: hjm4973
+
 jwt:
-    secret: wilflafe8w7fawf9fglrpobegmkv53EIF98fofvoenwkeof23wb9nvlk930jibnls2o9
-    access-validity-time: 600000 # 10분 3600000 # 1시간
-    refresh-validity-time: 1800000 # 30분 7776000000 # 3개월
+    secret: wilflafe8w7fawf9fglrpobegmkv53EIF98fofvoenwkeof23wb9nvlk930jibnlde5f1w
+    access-validity-time: 3600000 # 60000 # 1분 600000 # 10분 3600000 # 1시간
+    refresh-validity-time: 7776000000 # 300000 # 5분 1800000 # 30분 7776000000 # 3개월
 
 logging.level:
     org.hibernate.SQL: debug

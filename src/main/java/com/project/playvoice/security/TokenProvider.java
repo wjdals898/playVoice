@@ -2,8 +2,10 @@ package com.project.playvoice.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.SignatureException;
+import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,6 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Component
@@ -32,42 +35,54 @@ public class TokenProvider {
     private long refresh_valid_time; // 30분
 
     private final UserDetailsService userDetailsService;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @PostConstruct
     protected void init() {
         secret_key = Base64.getEncoder().encodeToString(secret_key.getBytes());
     }
 
-    public String createAccessToken(String username, String nickname, List<String> roles) {
-        Claims claims = Jwts.claims().setSubject(username);
+    public String createAccessToken(Authentication authentication) {
+        Claims claims = Jwts.claims().setSubject(authentication.getName());
 
-        claims.put("roles", roles);
         Date now = new Date();
         return Jwts.builder()
                 .setClaims(claims)
-                .claim("nickname", nickname)
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + access_valid_time))
                 .signWith(SignatureAlgorithm.HS512, secret_key)
                 .compact();
     }
 
-    public String createRefreshToken(String username, String nickname, List<String> roles) {
-        Claims claims = Jwts.claims().setSubject(username);
+    public String createRefreshToken(Authentication authentication) {
+        Claims claims = Jwts.claims().setSubject(authentication.getName());
 
-        claims.put("roles", roles);
         Date now = new Date();
-        return Jwts.builder()
+        String refreshToken = Jwts.builder()
                 .setClaims(claims)
-                .claim("nickname", nickname)
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + refresh_valid_time))
                 .signWith(SignatureAlgorithm.HS512, secret_key)
                 .compact();
+
+        redisTemplate.opsForValue().set(
+                authentication.getName(),
+                refreshToken,
+                refresh_valid_time,
+                TimeUnit.MILLISECONDS
+        );
+
+        return refreshToken;
     }
 
     public Authentication getAuthenticationByAccessToken(String token) {
-        UserDetails userDetails = userDetailsService.loadUserByUsername(this.getUsername(token));
+        String userPrincipal = Jwts.parserBuilder()
+                .setSigningKey(secret_key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody().getSubject();
+        UserDetails userDetails = userDetailsService.loadUserByUsername(userPrincipal);
+
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 
@@ -78,10 +93,6 @@ public class TokenProvider {
 
     public String getUsername(String token) {
         return Jwts.parserBuilder().setSigningKey(secret_key).build().parseClaimsJws(token).getBody().getSubject();
-    }
-
-    public String getNickname(String token) {
-        return Jwts.parserBuilder().setSigningKey(secret_key).build().parseClaimsJws(token).getBody().get("nickname").toString();
     }
 
     public String resolveToken(String bearerToken) {
@@ -99,27 +110,33 @@ public class TokenProvider {
         catch(SignatureException e){
             //서명이 옳지 않을 때
             System.out.println("잘못된 토큰 서명입니다.");
+            throw new RuntimeException("invalid token signature");
         }
         catch(ExpiredJwtException e){
             //토큰이 만료됐을 때
             System.out.println("만료된 토큰입니다.");
+            throw new RuntimeException("expired token");
         }
         catch(IllegalArgumentException | MalformedJwtException e){
             //토큰이 올바르게 구성되지 않았을 때 처리
-            System.out.println("잘못된 토큰입니다.");
+            System.out.println("invalid token");
         }
         return false;
     }
 
-    // 엑세스 토큰 헤더 설정
-    public void setHeaderAccessToken(HttpHeaders httpHeaders, String accessToken) {
-        httpHeaders.add("Authorization", "Bearer " + accessToken);
-        //return httpHeaders;
+    public Long getExpired(String token) {
+        Date expiration = Jwts.parserBuilder().setSigningKey(secret_key).build().parseClaimsJws(token)
+                .getBody().getExpiration();
+        long now = new Date().getTime();
+        return (expiration.getTime() - now);
     }
 
-    // 리프레시 토큰 헤더 설정
-    public void setHeaderRefreshToken(HttpHeaders httpHeaders, String refreshToken) {
+    // 토큰 헤더 설정
+    public HttpHeaders setHeaderToken(String accessToken, String refreshToken) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Authorization", "Bearer " + accessToken);
         httpHeaders.add("Refresh", "Bearer " + refreshToken);
-        //return httpHeaders;
+
+        return httpHeaders;
     }
 }

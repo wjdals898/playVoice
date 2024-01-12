@@ -1,7 +1,9 @@
 package com.project.playvoice.service;
 
 import com.project.playvoice.domain.UserEntity;
+import com.project.playvoice.dto.LoginDTO;
 import com.project.playvoice.dto.TokenDTO;
+import com.project.playvoice.dto.UserDTO;
 import com.project.playvoice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,9 +46,11 @@ public class UserService {
 
     public UserEntity getByCredentials(final String username, final String password, final PasswordEncoder encoder) {
         final UserEntity originalUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("username not found"));
+                .orElseThrow(() -> new RuntimeException("user not found"));
 
-        if (originalUser != null && encoder.matches(password, originalUser.getPassword())) { return originalUser; }
+        if (originalUser != null && encoder.matches(password, originalUser.getPassword())) {
+            return originalUser;
+        }
         return null;
     }
 

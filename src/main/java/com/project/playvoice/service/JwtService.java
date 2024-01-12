@@ -1,68 +1,94 @@
 package com.project.playvoice.service;
 
-import com.project.playvoice.domain.TokenEntity;
 import com.project.playvoice.domain.UserEntity;
+import com.project.playvoice.dto.LoginDTO;
 import com.project.playvoice.dto.TokenDTO;
-import com.project.playvoice.repository.RefreshRepository;
-import com.project.playvoice.repository.UserRepository;
 import com.project.playvoice.security.TokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.nio.file.AccessDeniedException;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class JwtService {
 
-    private final UserRepository userRepository;
-    private final RefreshRepository refreshRepository;
-    private final ApplicationContext context;
+    private final UserService userService;
+    private final TokenProvider tokenProvider;
+    private final PasswordEncoder passwordEncoder;
+    private final RedisTemplate<String, String> redisTemplate;
 
-    public void saveRefreshToken(TokenDTO tokenDTO) {
-        refreshRepository.findById(tokenDTO.getUserId())
-                .ifPresentOrElse(
-                        r -> {
-                            r.setRefreshToken(tokenDTO.getRefreshToken());
-                        },
-                        () -> {
-                            TokenEntity token = TokenEntity.builder().id(tokenDTO.getUserId())
-                                    .refreshToken(tokenDTO.getRefreshToken()).build();
-                            refreshRepository.save(token);
-                        }
-                );
+    @Value("${jwt.refresh-validity-time}")
+    private long refreshExpired;
+
+    public TokenDTO login(final LoginDTO loginDTO) {
+        try {
+            UserEntity userEntity = userService.getByCredentials(loginDTO.getUsername(), loginDTO.getPassword(), passwordEncoder);
+            if (userEntity == null) {
+                throw new RuntimeException("invalid password");
+            }
+            Authentication authentication = tokenProvider.getAuthenticationByUsername(userEntity.getUsername());
+
+            String accessToken = tokenProvider.createAccessToken(authentication);
+            String refreshToken = null;
+            if (loginDTO.getIsAuthLogin()) {
+                refreshToken = tokenProvider.createRefreshToken(authentication);
+            }
+            return TokenDTO.builder()
+                    .username(loginDTO.getUsername())
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .build();
+
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 
-    public TokenDTO refresh(String token) {
-        TokenProvider tokenProvider = context.getBean(TokenProvider.class);
+    public String reissueAccessToken(final String username, final String refreshToken) {
+        try {
+            Authentication authentication = tokenProvider.getAuthenticationByUsername(username);
+            String redisRefreshToken = redisTemplate.opsForValue().get(authentication.getName());
+            if (!tokenProvider.validateToken(refreshToken) || !refreshToken.equals(redisRefreshToken)) {
+                throw new RuntimeException("expired token");
+            }
 
-        String refreshToken = tokenProvider.resolveToken(token);
-        if (!tokenProvider.validateToken(refreshToken)) {
-            throw new RuntimeException("unauthorized access");
+            String newAccessToken = tokenProvider.createAccessToken(authentication);
+
+            if (newAccessToken == null) {
+                throw new RuntimeException("fail to access");
+            }
+
+            return newAccessToken;
+        } catch (Exception e) {
+            throw new RuntimeException("expired refresh token");
         }
+    }
 
-        TokenEntity findRefreshToken = refreshRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new UsernameNotFoundException("refresh token not found"));
+    public void logout(final String accessToken) {
+        try {
+            if (tokenProvider.validateToken(accessToken)) {
+                long expiration = tokenProvider.getExpired(accessToken);
+                log.info("atk expiration : " + expiration);
+                String username = tokenProvider.getAuthenticationByAccessToken(accessToken).getName();
+                if (redisTemplate.opsForValue().get(username) != null) {
+                    redisTemplate.delete(username);
+                }
 
-        // refresh token 을 활용하여 username 정보 획득
-        UserEntity user = userRepository.findById(findRefreshToken.getId())
-                .orElseThrow(() -> new RuntimeException("user not found"));
-
-        // access token 과 refresh token 모두를 재발급
-        // Authentication authentication = tokenProvider.getAuthenticationByUsername(user.getUsername());
-        String newAccessToken = tokenProvider.createAccessToken(user.getUsername(), user.getNickname(), user.getRoles());
-        String newRefreshToken = tokenProvider.createRefreshToken(user.getUsername(), user.getNickname(), user.getRoles());
-
-        TokenDTO tokenDto = TokenDTO.builder().userId(findRefreshToken.getId()).accessToken(newAccessToken)
-                .refreshToken(newRefreshToken).build();
-
-        this.saveRefreshToken(tokenDto);
-
-        return tokenDto;
+                redisTemplate.opsForValue().set(
+                        accessToken,
+                        "logout",
+                        expiration,
+                        TimeUnit.MILLISECONDS
+                );
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 }

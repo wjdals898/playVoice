@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,38 +57,68 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDTO loginDTO) {
-        UserEntity user = userService.getByCredentials(loginDTO.getUsername(), loginDTO.getPassword(), passwordEncoder);
+        try {
+            TokenDTO tokenDTO = jwtService.login(loginDTO);
 
-        if (user != null) {
-            final String accessToken = tokenProvider.createAccessToken(user.getUsername(), user.getNickname(), user.getRoles());
-            final String refreshToken = loginDTO.getIsAuthLogin() ?
-                    tokenProvider.createRefreshToken(user.getUsername(), user.getNickname(), user.getRoles()) :
-                    "";
+            UserEntity user = userService.findByUsername(tokenDTO.getUsername());
 
-            final UserDTO responseUserDTO = UserDTO.builder()
+            UserDTO responseUserDTO = UserDTO.builder()
                     .id(user.getId())
                     .username(user.getUsername())
                     .email(user.getEmail())
                     .nickname(user.getNickname())
                     .roles(user.getRoles())
                     .build();
-
-            final TokenDTO tokenDTO = TokenDTO.builder()
-                    .userId(user.getId())
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .build();
-            jwtService.saveRefreshToken(tokenDTO);
-
-            HttpHeaders httpHeaders = new HttpHeaders();
-            tokenProvider.setHeaderAccessToken(httpHeaders, accessToken);
-            tokenProvider.setHeaderRefreshToken(httpHeaders, refreshToken);
+            HttpHeaders httpHeaders = tokenProvider.setHeaderToken(tokenDTO.getAccessToken(), tokenDTO.getRefreshToken());
 
             return ResponseEntity.ok().headers(httpHeaders).body(responseUserDTO);
-        } else {
-            ResponseDTO<UserDTO> responseDTO = ResponseDTO.<UserDTO>builder()
-                    .message("fail to login")
+
+        } catch (Exception e) {
+            ResponseDTO<?> responseDTO = ResponseDTO.builder()
+                    .message(e.getMessage())
                     .build();
+
+            return ResponseEntity.badRequest().body(responseDTO);
+        }
+    }
+
+    @GetMapping("/reissue")
+    public ResponseEntity<?> reissueToken(HttpServletRequest request) {
+        String refreshToken = tokenProvider.resolveToken(request.getHeader("Refresh"));
+        String username = tokenProvider.getUsername(refreshToken);
+
+        try {
+            String newAccessToken = jwtService.reissueAccessToken(username, refreshToken);
+
+            HttpHeaders httpHeaders = tokenProvider.setHeaderToken(newAccessToken, refreshToken);
+
+            ResponseDTO<?> responseDTO = ResponseDTO.builder().message("success").build();
+
+            return ResponseEntity.ok().headers(httpHeaders).body(responseDTO);
+        } catch (Exception e) {
+            ResponseDTO<?> responseDTO = ResponseDTO.builder()
+                    .message(e.getMessage()).build();
+
+            HttpHeaders httpHeaders = tokenProvider.setHeaderToken("", "");
+
+            return ResponseEntity.badRequest().headers(httpHeaders).body(responseDTO);
+        }
+
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        try {
+            String accessToken = tokenProvider.resolveToken(request.getHeader("Authorization"));
+            jwtService.logout(accessToken);
+
+            ResponseDTO<?> responseDTO = ResponseDTO.builder().message("logout success").build();
+
+            return ResponseEntity.ok().body(responseDTO);
+        } catch (Exception e) {
+            ResponseDTO<?> responseDTO = ResponseDTO.builder()
+                    .message(e.getMessage()).build();
+
             return ResponseEntity.badRequest().body(responseDTO);
         }
     }
@@ -133,7 +164,7 @@ public class UserController {
     }
 
     @GetMapping("/email/{email}")
-    public ResponseEntity<?> findByEmail(@PathVariable String email) {
+    public ResponseEntity<?> findUsernameByEmail(@PathVariable String email) {
         try {
             UserEntity userEntity = userService.findByEmail(email);
             EmailDTO emailDTO = EmailDTO.builder()
@@ -153,7 +184,7 @@ public class UserController {
     }
 
     @GetMapping("/username/{username}")
-    public ResponseEntity<?> findByUsername(@PathVariable String username) {
+    public ResponseEntity<?> findPasswordByUsername(@PathVariable String username) {
         try {
             UserEntity userEntity = userService.findByUsername(username);
 
