@@ -1,13 +1,15 @@
-package com.project.playvoice.controller;
+package com.project.playvoice.user.controller;
 
 import com.project.playvoice.domain.UserEntity;
 import com.project.playvoice.dto.*;
 import com.project.playvoice.security.TokenProvider;
-import com.project.playvoice.service.JwtService;
-import com.project.playvoice.service.UserService;
+import com.project.playvoice.auth.service.JwtService;
+import com.project.playvoice.user.dto.EmailDTO;
+import com.project.playvoice.user.dto.UpdateUserDTO;
+import com.project.playvoice.user.dto.UserDTO;
+import com.project.playvoice.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +30,7 @@ public class UserController {
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
 
-    @PostMapping("/signup")
+    @PostMapping("")
     public ResponseEntity<?> registerUser(@RequestBody UserDTO userDTO) {
         try {
             UserEntity userEntity = UserEntity.builder()
@@ -51,74 +53,6 @@ public class UserController {
             return ResponseEntity.ok().body(responseUserDTO);
         } catch (Exception e) {
             ResponseDTO<UserDTO> responseDTO = ResponseDTO.<UserDTO>builder().message(e.getMessage()).build();
-            return ResponseEntity.badRequest().body(responseDTO);
-        }
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginDTO loginDTO) {
-        try {
-            TokenDTO tokenDTO = jwtService.login(loginDTO);
-
-            UserEntity user = userService.findByUsername(tokenDTO.getUsername());
-
-            UserDTO responseUserDTO = UserDTO.builder()
-                    .id(user.getId())
-                    .username(user.getUsername())
-                    .email(user.getEmail())
-                    .nickname(user.getNickname())
-                    .roles(user.getRoles())
-                    .build();
-            HttpHeaders httpHeaders = tokenProvider.setHeaderToken(tokenDTO.getAccessToken(), tokenDTO.getRefreshToken());
-
-            return ResponseEntity.ok().headers(httpHeaders).body(responseUserDTO);
-
-        } catch (Exception e) {
-            ResponseDTO<?> responseDTO = ResponseDTO.builder()
-                    .message(e.getMessage())
-                    .build();
-
-            return ResponseEntity.badRequest().body(responseDTO);
-        }
-    }
-
-    @GetMapping("/reissue")
-    public ResponseEntity<?> reissueToken(HttpServletRequest request) {
-        String refreshToken = tokenProvider.resolveToken(request.getHeader("Refresh"));
-        String username = tokenProvider.getUsername(refreshToken);
-
-        try {
-            String newAccessToken = jwtService.reissueAccessToken(username, refreshToken);
-
-            HttpHeaders httpHeaders = tokenProvider.setHeaderToken(newAccessToken, refreshToken);
-
-            ResponseDTO<?> responseDTO = ResponseDTO.builder().message("success").build();
-
-            return ResponseEntity.ok().headers(httpHeaders).body(responseDTO);
-        } catch (Exception e) {
-            ResponseDTO<?> responseDTO = ResponseDTO.builder()
-                    .message(e.getMessage()).build();
-
-            HttpHeaders httpHeaders = tokenProvider.setHeaderToken("", "");
-
-            return ResponseEntity.badRequest().headers(httpHeaders).body(responseDTO);
-        }
-
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        try {
-            String accessToken = tokenProvider.resolveToken(request.getHeader("Authorization"));
-            jwtService.logout(accessToken);
-
-            ResponseDTO<?> responseDTO = ResponseDTO.builder().message("logout success").build();
-
-            return ResponseEntity.ok().body(responseDTO);
-        } catch (Exception e) {
-            ResponseDTO<?> responseDTO = ResponseDTO.builder()
-                    .message(e.getMessage()).build();
-
             return ResponseEntity.badRequest().body(responseDTO);
         }
     }
@@ -202,6 +136,30 @@ public class UserController {
             return ResponseEntity.ok().body(responseDTO);
         } catch (Exception e) {
             ResponseDTO<EmailDTO> responseDTO = ResponseDTO.<EmailDTO>builder()
+                    .message(e.getMessage())
+                    .build();
+
+            return ResponseEntity.badRequest().body(responseDTO);
+        }
+    }
+
+    @PutMapping("")
+    public ResponseEntity<?> updateUser(@RequestBody UpdateUserDTO updateUserDTO, HttpServletRequest request) {
+        try {
+            if (updateUserDTO.getOldPassword() == null && updateUserDTO.getNewPassword() == null && updateUserDTO.getNickname() == null) {
+                throw new RuntimeException("validation error");
+            }
+            String accessToken = tokenProvider.resolveToken(request.getHeader("Authorization"));
+            UserDTO responseUser = userService.update(updateUserDTO, accessToken);
+
+            ResponseDTO<UserDTO> responseDTO = ResponseDTO.<UserDTO>builder()
+                    .message("success update")
+                    .data(responseUser)
+                    .build();
+
+            return ResponseEntity.ok().body(responseDTO);
+        } catch (Exception e) {
+            ResponseDTO<?> responseDTO = ResponseDTO.builder()
                     .message(e.getMessage())
                     .build();
 

@@ -1,14 +1,12 @@
-package com.project.playvoice.service;
+package com.project.playvoice.user.service;
 
 import com.project.playvoice.domain.UserEntity;
-import com.project.playvoice.dto.LoginDTO;
-import com.project.playvoice.dto.TokenDTO;
-import com.project.playvoice.dto.UserDTO;
-import com.project.playvoice.repository.UserRepository;
+import com.project.playvoice.security.TokenProvider;
+import com.project.playvoice.user.dto.UpdateUserDTO;
+import com.project.playvoice.user.dto.UserDTO;
+import com.project.playvoice.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +18,8 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final TokenProvider tokenProvider;
 
     public UserEntity create(final UserEntity userEntity) {
         if (userEntity == null ||
@@ -72,5 +72,32 @@ public class UserService {
     public UserEntity findByUsername(final String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("user not found"));
+    }
+
+    public UserDTO update(UpdateUserDTO updateUserDTO, String accessToken) {
+        String username = tokenProvider.getUsername(accessToken);
+        UserEntity user = getByCredentials(username, updateUserDTO.getOldPassword(), passwordEncoder);
+        if (user == null) {
+            throw new RuntimeException("invalid password");
+        }
+
+        if (updateUserDTO.getNewPassword() != null) {   // 비밀번호 변경
+            user.updatePassword(passwordEncoder.encode(updateUserDTO.getNewPassword()));
+        }
+        if (updateUserDTO.getNickname() != null) { // 닉네임 변경
+            if (userRepository.existsByNickname(updateUserDTO.getNickname())) {    // 닉네임 중복 확인
+                throw new RuntimeException("duplicated nickname");
+            }
+            user.updateNickname(updateUserDTO.getNickname());
+        }
+        userRepository.save(user);
+
+        return UserDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .roles(user.getRoles())
+                .build();
     }
 }

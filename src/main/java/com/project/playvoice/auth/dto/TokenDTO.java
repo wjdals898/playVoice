@@ -1,4 +1,4 @@
-package com.project.playvoice.dto;
+package com.project.playvoice.auth.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

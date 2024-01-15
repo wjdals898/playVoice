@@ -25,8 +25,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = tokenProvider.resolveToken(request.getHeader("Authorization"));
         try {
             if (token != null && tokenProvider.validateToken(token)) {
-                String isLogout = redisTemplate.opsForValue().get(token);
-                if (ObjectUtils.isEmpty(isLogout)) {
+                String tokenStatus = redisTemplate.opsForValue().get(token);
+
+                if (ObjectUtils.isEmpty(tokenStatus)) {
                     Authentication authentication = tokenProvider.getAuthenticationByAccessToken(token);
                     SecurityContextHolder.getContext().setAuthentication(authentication);   // 정상 토큰일 경우 SecurityContext에 저장
                 }
@@ -34,8 +35,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (RedisConnectionFailureException e) {
             SecurityContextHolder.clearContext();
             throw new RuntimeException("redis connect fail");
-        } catch (Exception e) {
-            throw new RuntimeException("invalid token");
         }
 
         filterChain.doFilter(request, response);

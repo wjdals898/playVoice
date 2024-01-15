@@ -1,16 +1,24 @@
-package com.project.playvoice.service;
+package com.project.playvoice.auth.service;
 
 import com.project.playvoice.domain.UserEntity;
-import com.project.playvoice.dto.LoginDTO;
-import com.project.playvoice.dto.TokenDTO;
+import com.project.playvoice.auth.dto.LoginDTO;
+import com.project.playvoice.auth.dto.TokenDTO;
 import com.project.playvoice.security.TokenProvider;
+import com.project.playvoice.user.repository.UserRepository;
+import com.project.playvoice.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.SpringSecurityCoreVersion;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
+
+import java.security.Principal;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -19,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 public class JwtService {
 
     private final UserService userService;
+    private final UserRepository userRepository;
     private final TokenProvider tokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, String> redisTemplate;
@@ -89,6 +98,31 @@ public class JwtService {
             }
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public void delete(String accessToken, String password) {
+        try {
+            String username = tokenProvider.getAuthenticationByAccessToken(accessToken).getName();
+            UserEntity user = userService.getByCredentials(username, password, passwordEncoder);
+            Long expiration = tokenProvider.getExpired(accessToken);
+            if (user == null) {
+                throw new RuntimeException("invalid password");
+            }
+            userRepository.delete(user);
+            if (redisTemplate.opsForValue().get(username) != null) {
+                redisTemplate.delete(username);
+            }
+
+            redisTemplate.opsForValue().set(
+                    accessToken,
+                    "withdrawal",
+                    expiration,
+                    TimeUnit.MILLISECONDS
+            );
+
+        } catch (Exception e) {
+            throw new RuntimeException("fail to delete user");
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.project.playvoice.dto;
+package com.project.playvoice.user.dto;
 
 import com.project.playvoice.domain.UserEntity;
 import lombok.*;

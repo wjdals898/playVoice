@@ -1,4 +1,4 @@
-package com.project.playvoice.repository;
+package com.project.playvoice.user.repository;
 
 import com.project.playvoice.domain.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
