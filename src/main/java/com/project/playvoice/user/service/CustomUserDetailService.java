@@ -1,6 +1,6 @@
 package com.project.playvoice.user.service;
 
-import com.project.playvoice.domain.UserEntity;
+import com.project.playvoice.user.domain.UserEntity;
 import com.project.playvoice.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;

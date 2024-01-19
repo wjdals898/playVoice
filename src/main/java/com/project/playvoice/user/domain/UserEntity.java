@@ -1,4 +1,4 @@
-package com.project.playvoice.domain;
+package com.project.playvoice.user.domain;
 
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;

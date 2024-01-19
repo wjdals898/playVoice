@@ -1,6 +1,6 @@
 package com.project.playvoice.user.dto;
 
-import com.project.playvoice.domain.UserEntity;
+import com.project.playvoice.user.domain.UserEntity;
 import lombok.*;
 
 import java.util.List;

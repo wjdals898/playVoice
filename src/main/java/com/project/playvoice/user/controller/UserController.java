@@ -1,6 +1,6 @@
 package com.project.playvoice.user.controller;
 
-import com.project.playvoice.domain.UserEntity;
+import com.project.playvoice.user.domain.UserEntity;
 import com.project.playvoice.dto.*;
 import com.project.playvoice.security.TokenProvider;
 import com.project.playvoice.auth.service.JwtService;

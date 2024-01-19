@@ -1,6 +1,6 @@
 package com.project.playvoice.auth.service;
 
-import com.project.playvoice.domain.UserEntity;
+import com.project.playvoice.user.domain.UserEntity;
 import com.project.playvoice.auth.dto.LoginDTO;
 import com.project.playvoice.auth.dto.TokenDTO;
 import com.project.playvoice.security.TokenProvider;
@@ -11,14 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.SpringSecurityCoreVersion;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ObjectUtils;
 
-import java.security.Principal;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j

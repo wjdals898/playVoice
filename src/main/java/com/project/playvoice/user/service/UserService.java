@@ -1,6 +1,6 @@
 package com.project.playvoice.user.service;
 
-import com.project.playvoice.domain.UserEntity;
+import com.project.playvoice.user.domain.UserEntity;
 import com.project.playvoice.security.TokenProvider;
 import com.project.playvoice.user.dto.UpdateUserDTO;
 import com.project.playvoice.user.dto.UserDTO;

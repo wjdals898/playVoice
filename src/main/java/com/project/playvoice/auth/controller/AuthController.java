@@ -1,13 +1,12 @@
 package com.project.playvoice.auth.controller;
 
 import com.project.playvoice.auth.service.JwtService;
-import com.project.playvoice.domain.UserEntity;
+import com.project.playvoice.user.domain.UserEntity;
 import com.project.playvoice.auth.dto.LoginDTO;
 import com.project.playvoice.dto.ResponseDTO;
 import com.project.playvoice.auth.dto.TokenDTO;
 import com.project.playvoice.user.dto.UserDTO;
 import com.project.playvoice.security.TokenProvider;
-import com.project.playvoice.user.repository.UserRepository;
 import com.project.playvoice.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
