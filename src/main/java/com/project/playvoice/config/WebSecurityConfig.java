@@ -54,6 +54,7 @@ public class WebSecurityConfig {
                 .antMatchers(HttpMethod.GET, "/users/**").permitAll()
                 .antMatchers(HttpMethod.POST, "/users/**").permitAll()
                 .antMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                .antMatchers(HttpMethod.GET, "/profile/**").permitAll()
                 .anyRequest()
                 .authenticated()
                 .and()

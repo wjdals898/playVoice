@@ -1,5 +1,7 @@
 package com.project.playvoice.user.domain;
 
+import com.project.playvoice.domain.BaseTimeEntity;
+import com.project.playvoice.profile.model.ProfileEntity;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -11,17 +13,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Data
+@Getter
 @Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "user_entity")
-public class UserEntity implements UserDetails {
+public class UserEntity extends BaseTimeEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="id", updatable = false)
+    @Column(name="user_id", updatable = false)
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -39,6 +41,9 @@ public class UserEntity implements UserDetails {
     @ElementCollection(fetch = FetchType.EAGER)
     @Builder.Default
     private List<String> roles = new ArrayList<>();
+
+//    @OneToOne(mappedBy = "user", cascade = CascadeType.REMOVE)
+//    private ProfileEntity profile;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
