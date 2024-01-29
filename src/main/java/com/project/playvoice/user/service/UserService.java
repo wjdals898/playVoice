@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -21,16 +22,16 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
 
-    public UserEntity create(final UserEntity userEntity) {
-        if (userEntity == null ||
-                userEntity.getUsername().equals("") ||
-                userEntity.getPassword().equals("") ||
-                userEntity.getNickname().equals("")) {
+    public UserDTO create(final UserDTO userDTO) {
+        if (userDTO == null ||
+                userDTO.getUsername().equals("") ||
+                userDTO.getPassword().equals("") ||
+                userDTO.getNickname().equals("")) {
             throw new RuntimeException("validation error");
         }
-        final String username = userEntity.getUsername();
-        final String nickname = userEntity.getNickname();
-        final String email = userEntity.getEmail();
+        final String username = userDTO.getUsername();
+        final String nickname = userDTO.getNickname();
+        final String email = userDTO.getEmail();
         if (userRepository.existsByUsername(username)) {
             throw new RuntimeException("username already exists");
         }
@@ -41,7 +42,23 @@ public class UserService {
             throw new RuntimeException("email already exists");
         }
 
-        return userRepository.save(userEntity);
+        UserEntity user = UserEntity.builder()
+                .username(username)
+                .password(passwordEncoder.encode(userDTO.getPassword()))
+                .email(userDTO.getEmail())
+                .nickname(userDTO.getNickname())
+                .roles(Collections.singletonList("ROLE_USER"))
+                .build();
+
+        userRepository.save(user);
+
+        return UserDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .roles(user.getRoles())
+                .build();
     }
 
     public UserEntity getByCredentials(final String username, final String password, final PasswordEncoder encoder) {

@@ -41,16 +41,9 @@ public class UserController {
                     .roles(Collections.singletonList("ROLE_USER"))
                     .build();
 
-            UserEntity registerUserEntity = userService.create(userEntity);
-            UserDTO responseUserDTO = UserDTO.builder()
-                    .id(registerUserEntity.getId())
-                    .username(registerUserEntity.getUsername())
-                    .email(registerUserEntity.getEmail())
-                    .nickname(registerUserEntity.getNickname())
-                    .roles(registerUserEntity.getRoles())
-                    .build();
+            UserDTO responseUser= userService.create(userDTO);
 
-            return ResponseEntity.ok().body(responseUserDTO);
+            return ResponseEntity.ok().body(responseUser);
         } catch (Exception e) {
             ResponseDTO<UserDTO> responseDTO = ResponseDTO.<UserDTO>builder().message(e.getMessage()).build();
             return ResponseEntity.badRequest().body(responseDTO);
