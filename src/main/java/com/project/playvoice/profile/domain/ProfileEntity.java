@@ -1,9 +1,8 @@
-package com.project.playvoice.profile.model;
+package com.project.playvoice.profile.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.project.playvoice.domain.BaseTimeEntity;
 import com.project.playvoice.profile.dto.PhotoDTO;
-import com.project.playvoice.profile.dto.ProfileDTO;
 import com.project.playvoice.user.domain.UserEntity;
 import lombok.*;
 

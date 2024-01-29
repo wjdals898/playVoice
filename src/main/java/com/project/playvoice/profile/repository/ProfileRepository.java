@@ -1,6 +1,6 @@
 package com.project.playvoice.profile.repository;
 
-import com.project.playvoice.profile.model.ProfileEntity;
+import com.project.playvoice.profile.domain.ProfileEntity;
 import com.project.playvoice.user.domain.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

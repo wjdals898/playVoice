@@ -2,7 +2,7 @@ package com.project.playvoice.profile.service;
 
 import com.project.playvoice.profile.dto.PhotoDTO;
 import com.project.playvoice.profile.dto.ProfileDTO;
-import com.project.playvoice.profile.model.ProfileEntity;
+import com.project.playvoice.profile.domain.ProfileEntity;
 import com.project.playvoice.profile.repository.ProfileRepository;
 import com.project.playvoice.user.domain.UserEntity;
 import com.project.playvoice.user.repository.UserRepository;

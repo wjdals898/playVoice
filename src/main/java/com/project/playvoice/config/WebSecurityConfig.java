@@ -52,7 +52,7 @@ public class WebSecurityConfig {
                 .antMatchers("/admin/*", "/h2-console/**").hasRole("ADMIN")
                 .antMatchers("/h2-console/**").permitAll()
                 .antMatchers(HttpMethod.GET, "/users/**").permitAll()
-                .antMatchers(HttpMethod.POST, "/users/**").permitAll()
+                .antMatchers(HttpMethod.POST, "/users").permitAll()
                 .antMatchers(HttpMethod.POST, "/auth/login").permitAll()
                 .antMatchers(HttpMethod.GET, "/profile/**").permitAll()
                 .anyRequest()

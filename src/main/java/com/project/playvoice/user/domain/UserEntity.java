@@ -1,7 +1,6 @@
 package com.project.playvoice.user.domain;
 
 import com.project.playvoice.domain.BaseTimeEntity;
-import com.project.playvoice.profile.model.ProfileEntity;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -41,6 +40,12 @@ public class UserEntity extends BaseTimeEntity implements UserDetails {
     @ElementCollection(fetch = FetchType.EAGER)
     @Builder.Default
     private List<String> roles = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    private List<Long> followers;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    private List<Long> followings;
 
 //    @OneToOne(mappedBy = "user", cascade = CascadeType.REMOVE)
 //    private ProfileEntity profile;
