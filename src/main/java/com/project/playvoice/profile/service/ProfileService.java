@@ -92,13 +92,8 @@ public class ProfileService {
     }
 
     public String generateUniqueFileName(String originFileName, String type) {   // 중복 방지를 위한 고유한 파일 이름 생성
-        String newName = "";
         String timestamp = Long.toString(System.currentTimeMillis());
-        if (type.equals("profile")) {
-            newName = "profile_" + timestamp + "_" + originFileName;
-        } else if (type.equals("background")) {
-            newName = "background_" + timestamp + "_" + originFileName;
-        }
+        String newName = type + "_" + timestamp + "_" + originFileName;
 
         return newName;
     }

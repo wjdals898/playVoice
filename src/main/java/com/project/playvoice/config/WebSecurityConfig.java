@@ -55,6 +55,7 @@ public class WebSecurityConfig {
                 .antMatchers(HttpMethod.POST, "/users").permitAll()
                 .antMatchers(HttpMethod.POST, "/auth/login").permitAll()
                 .antMatchers(HttpMethod.GET, "/profile/**").permitAll()
+                .antMatchers(HttpMethod.GET, "/voice/**").permitAll()
                 .anyRequest()
                 .authenticated()
                 .and()
